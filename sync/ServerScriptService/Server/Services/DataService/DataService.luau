@@ -143,7 +143,7 @@ function DataService:Remove(player: Player, path: Path)
 	end
 end
 
-function DataService:Observe<T...>(player: Player, path: Path, callback: (T...) -> ()): ObserverConnection
+function DataService:Observe<T>(player: Player, path: Path, callback: (T) -> ()): ObserverConnection
 	self:EnsurePlayer(player)
 
 	local key = GetPathKey(path)

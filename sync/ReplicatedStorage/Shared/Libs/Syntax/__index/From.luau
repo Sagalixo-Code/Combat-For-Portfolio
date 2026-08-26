@@ -1,19 +1,13 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Logger = require(ReplicatedStorage.Shared.Libs.Logger)
-local Result = require(ReplicatedStorage.Shared.Libs.Syntax.API.Result)
+local Result = require("../API/Result")
 
 local API = {}
 local _cachedModules = {}
 
-local FromLogger = Logger.new("From")
-
 setmetatable(API, {
 	__index = function(_, moduleName)
 		local module = _cachedModules[moduleName]
-		if not module then
-			FromLogger:Debug(`Module {tostring(moduleName)} dont found.`)
-		end
 		return module
 	end,
 })
@@ -28,7 +22,6 @@ local function safeReq(moduleScript: ModuleScript)
 	if success then
 		return result
 	else
-		FromLogger:Warn(`Error to load module {moduleScript.Name}. Current error is: {tostring(result)}`)
 		return Result.Err(result)
 	end
 end

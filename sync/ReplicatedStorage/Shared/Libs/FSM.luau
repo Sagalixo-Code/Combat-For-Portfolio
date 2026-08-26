@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(ReplicatedStorage.Packages.Signal)
-local Result = require(ReplicatedStorage.Shared.Libs.Result)
+local Result = require(ReplicatedStorage.Shared.Libs.Syntax).Result
 
 export type StateHooks<S> = {
 	OnEnter: ((from: S?) -> ())?,

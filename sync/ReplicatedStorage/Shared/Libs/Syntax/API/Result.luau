@@ -27,7 +27,7 @@ end
 
 function API.Unwrap<T, E>(self: Result<T, E>): T
 	if not self._ok then
-		error(`Result:Unwrap() chamado em um Err: {tostring(self._error)}`, 2)
+		error(`Result:Unwrap() Call is a one Err: {tostring(self._error)}`, 2)
 	end
 	return self._value :: T
 end
@@ -41,7 +41,7 @@ end
 
 function API.UnwrapErr<T, E>(self: Result<T, E>): E
 	if self._ok then
-		error("Result:UnwrapErr() chamado em um Ok", 2)
+		error("Result:UnwrapErr() Call is a one Ok", 2)
 	end
 	return self._error :: E
 end

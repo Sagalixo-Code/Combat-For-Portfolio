@@ -1,138 +1,123 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Janitor = require(ReplicatedStorage.Packages.Janitor)
-local EntityAttributes = require(ReplicatedStorage.Shared.Data.EntityAttributes)
-local Logger = require(ReplicatedStorage.Shared.Libs.Logger)
-local EntityService = {
-	Entities = {},
-}
+const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+local CharacterType_d = require(ReplicatedStorage.Shared.Definitions["CharacterType.d"])
+const Janitor = require("@game/ReplicatedStorage/Packages/Janitor")
 
-local EntityServiceLogger = Logger.new("EntityService")
+const Class = Syntax.Class
+const Struct = Syntax.Struct
 
-local UniqueCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
+const EntityStruct = Struct({
+	Struct.field("State", {}),
+	Struct.field("StateEnums", {}),
+	Struct.field("Stack", {}),
+})
 
-local function CreateID()
-	local EntityID = ""
-	for i = 1, 8 do
-		local randNum = math.random(1, UniqueCharacters:len())
-		EntityID = EntityID .. UniqueCharacters:sub(randNum, randNum)
-	end
-	return EntityID
-end
+const Attributes = table.freeze({
+	LightAttack = false,
+})
 
-local Attris = EntityAttributes
+const Entities = {}
 
-local function CreateStateMachine(EntityProfile, EntityData)
-	local StateMachine = {}
-	StateMachine.__index = {}
+local PlayerBehavior
 
-	function StateMachine.new(InitialState)
-		local self = {
-			State = EntityData[InitialState],
-			StateEnums = EntityData,
-			Stack = {},
-		}
-		setmetatable(self, StateMachine)
+const CreateStateMachineClass = Class({
+	constructor = function(this, EntityProfile)
+		this.EntityProfile = EntityProfile
+		this.Struct = EntityStruct.new(PlayerBehavior.Idle, PlayerBehavior, {})
+	end,
 
-		function self:SetState(NewState, ...)
-			if not self.StateEnums[NewState] then
-				warn(NewState .. " is not a valid state!")
-				return
-			end
+	SetState = function(this, NewState, ...)
+		const State = this.Struct.StateEnums[NewState]
 
-			self.State = self.StateEnums[NewState]
+		if not State then
+			warn(`{NewState} is not a valid state!`)
+			return
+		end
 
-			if EntityProfile.Player then
-				EntityProfile.Player:SetAttribute("CurrentState", NewState)
+		this.Struct.State = State
 
-				if EntityProfile.Player.Character then
-					EntityProfile.Player.Character:SetAttribute("CurrentState", NewState)
-				end
-			end
+		const Player = this.EntityProfile.Player
 
-			if self.State.Enter then
-				self.State.Enter(EntityProfile, ...)
+		if Player then
+			Player:SetAttribute("CurrentState", NewState)
+
+			const Character = Player.Character
+
+			if Character then
+				Character:SetAttribute("CurrentState", NewState)
 			end
 		end
 
-		function self:Trigger(Action, ...)
-			if self.State[Action] then
-				self.State[Action](EntityProfile, ...)
-				if self.State[Action .. "NextState"] then
-					local NextState = self.State[Action .. "NextState"]
-					self:SetState(NextState, ...)
-				end
-			else
-				EntityServiceLogger:Debug("Action " .. Action .. " not defined for current state!")
-			end
+		if State.Enter then
+			State.Enter(this.EntityProfile, ...)
+		end
+	end,
+
+	Trigger = function(this, Action, ...)
+		const State = this.Struct.State
+		const Handler = State[Action]
+
+		if not Handler then
+			return
 		end
 
-		function self:PushState(State)
-			table.insert(self.Stack, self.State)
-			self:SetState(State)
+		Handler(this.EntityProfile, ...)
+
+		const NextState = State[Action .. "NextState"]
+
+		if NextState then
+			this:SetState(NextState, ...)
 		end
+	end,
 
-		function self:PopState()
-			local PreviousState = table.remove(self.Stack)
-			if PreviousState then
-				self:SetState(PreviousState)
-			end
+	PushState = function(this, State)
+		table.insert(this.Struct.Stack, this.Struct.State)
+		this:SetState(State)
+	end,
+
+	PopState = function(this)
+		const PreviousState = table.remove(this.Struct.Stack)
+
+		if PreviousState then
+			this:SetState(PreviousState)
 		end
+	end,
+})
 
-		return self
-	end
-
-	return StateMachine.new("Idle")
-end
+const EntityService = {}
 
 function EntityService.PlayerAdded(Player: Player, Components)
-	if Player:GetAttribute("EntityID") then
-		EntityServiceLogger:Debug(`{Player.Name} has been registred`)
-		return
+	if not PlayerBehavior then
+		PlayerBehavior = Components.PlayerBehavior
 	end
 
-	local EntityProfile = {
-		Player = Player,
-		Character = Player.Character or Player.CharacterAdded:Wait(),
-		Janitor = Janitor.new(),
-	}
-	local EntityID = Player.Name .. "_" .. CreateID()
+	local Character = Player.Character or Player.CharacterAdded:Wait()
+	local Humanoid = Character:WaitForChild("Humanoid")
+	local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-	EntityProfile.Humanoid = EntityProfile.Character:WaitForChild("Humanoid")
-	EntityProfile.RootPart = EntityProfile.Character:WaitForChild("HumanoidRootPart")
-	EntityProfile.StateMachine = CreateStateMachine(EntityProfile, Components.PlayerBehavior)
+	const EntityProfileStruct = Struct({
+		Struct.field("Player", Player),
+		Struct.field("Character", Character),
+		Struct.field("Janitor", {}),
+		Struct.field("Humanoid", Humanoid),
+		Struct.field("RootPart", RootPart),
+		Struct.field("StateMachine", {}),
+	})
 
-	Player:SetAttribute("EntityID", EntityID)
-	Player:SetAttribute("CurrentState", "Idle")
+	local EntityProfile = EntityProfileStruct.new(Player, Character, Janitor.new(), Humanoid, RootPart, nil)
+	EntityProfile.StateMachine = CreateStateMachineClass.new(EntityProfile)
 
-	EntityService.Entities[EntityID] = EntityProfile
+	Entities[Player.Name] = EntityProfile
 end
 
-function EntityService.CharacterAdded(_, Player: Player, Character)
-	Character:SetAttribute("CurrentState", "Idle")
-	Character:SetAttribute("EntityID", Player:GetAttribute("EntityID"))
-
-	Character:SetAttribute("Weapon", "Fists")
-
-	for Name, Type in pairs(Attris) do
-		Character:SetAttribute(Name, Type)
+function EntityService.CharacterAdded(_, Player: Player, Character: CharacterType_d.Character)
+	for name, value in pairs(Attributes) do
+		Character:SetAttribute(name, value)
 	end
 end
 
-function EntityService.PlayerRemoving(_, Player: Player)
-	local EntityProfile = EntityService.GetEntity(Player)
-	if EntityProfile then
-		EntityProfile.Janitor:cleanup()
-		table.clear(EntityProfile)
-		EntityService.Entities[Player:GetAttribute("EntityID")] = nil
-	end
-end
-
-function EntityService.GetEntity(Player: Player)
-	if not Player then
-		EntityServiceLogger:Error(`Player dont exist`)
-		return
-	end
-	return EntityService.Entities[Player:GetAttribute("EntityID")]
+function EntityService.getEntity(PlayerName)
+	return Entities[PlayerName]
 end
 
 return EntityService

@@ -1,65 +1,74 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SharedByteNetPackets = require(ReplicatedStorage.Networking.SharedByteNetPackets)
+const SharedByteNetPackets = require("@game/ReplicatedStorage/Networking/SharedByteNetPackets")
+const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
 local Registry = require(ReplicatedStorage.Shared.Libs.Forge.Registry)
-local StateService = {}
 
-local function isAllowedAction(EntityMachine: any, Action: any): boolean
-	if typeof(Action) ~= "string" or Action == "" then
-		return false
+const Interface = Syntax.Interface
+const Result = Syntax.Result
+
+const Ok = Result.Ok
+const Err = Result.Err
+
+const StateService = {}
+
+const function TryGetState(Context)
+	if not Context.Params then
+		return Err("Missing params")
 	end
 
-	if Action == "PushState" or Action == "PopState" then
-		return true
+	local State = Context.Params.State
+
+	if State == nil then
+		return Err("Missing state")
 	end
 
-	if not EntityMachine or not EntityMachine.StateMachine then
-		return false
-	end
-
-	local state = EntityMachine.StateMachine.State
-	return type(state) == "table" and state[Action] ~= nil
+	return Ok(State)
 end
 
 function StateService.Start()
-	local EntityService = Registry:getService("EntityService")
+	const EntityService = Registry:getService("EntityService")
 
-	SharedByteNetPackets.CombatPacket.StateManager.listen(function(
-		Data: {
+	const StateMachineInterface = Interface({
+		SetState = "function",
+		Trigger = "function",
+		PushState = "function",
+		PopState = "function",
+	})
+
+	SharedByteNetPackets.StatePacket.StateManager.listen(function(
+		Context: {
 			Action: string,
-			Params: {},
+			Params: { [any]: any },
 		},
 		Player: Player
 	)
-		if typeof(Data) ~= "table" then
+		local EntityMachine = EntityService.getEntity(Player.Name)
+
+		if not EntityMachine or not StateMachineInterface:check(EntityMachine.StateMachine) then
 			return
 		end
 
-		local EntityMachine = EntityService.GetEntity(Player)
-		local Action = Data.Action
+		if EntityMachine.StateMachine[Context.Action] then
+			if Context.Action == "PushState" then
+				local State = TryGetState(Context)
 
-		if not isAllowedAction(EntityMachine, Action) then
-			return
-		end
+				if State:IsErr() then
+					return
+				end
 
-		if Action == "PushState" then
-			if typeof(Data.Params) ~= "string" then
-				return
+				EntityMachine.StateMachine:PushState(State:Unwrap())
+			elseif Context.Action == "PopState" then
+				EntityMachine.StateMachine:PopState()
+			else
+				local State = TryGetState(Context)
+
+				if State:IsErr() then
+					return
+				end
+
+				EntityMachine.StateMachine:Trigger(State:Unwrap())
 			end
-
-			EntityMachine.StateMachine:PushState(Data.Params)
-			return
 		end
-
-		if Action == "PopState" then
-			EntityMachine.StateMachine:PopState()
-			return
-		end
-
-		if typeof(Data.Params) ~= "table" and Data.Params ~= nil then
-			return
-		end
-
-		EntityMachine.StateMachine:Trigger(Action, Data.Params)
 	end)
 end
 

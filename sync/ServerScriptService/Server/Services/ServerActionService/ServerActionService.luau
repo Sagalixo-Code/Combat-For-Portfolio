@@ -1,55 +1,47 @@
-local ServerActionService = {}
-
-local Internal = script.Parent:WaitForChild("Internal")
-
-local AllowedModules = {
-	MechanicManager = {
-		LightAttack = true,
-		ZXC = true,
-		Criticals = true
-	},
+export type ContextType = {
+	Module: string?,
+	Func: string?,
+	EntityMachine: { [string]: any }?,
 }
 
-function ServerActionService.Trigger(Context)
-	if typeof(Context) ~= "table" then
+local Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+
+local Result = Syntax.Result
+
+local ServerActionService = {}
+
+local function TryContext(Context: ContextType?)
+	if not Context then
+		return Result.Err("Context dont exist")
+	end
+
+	if not Context.Module then
+		return Result.Err("Module dont exist")
+	end
+
+	if not Context.Func then
+		return Result.Err("Func dont exist")
+	end
+
+	if not Context.EntityMachine then
+		return Result.Err("Entity Machine dont exist")
+	end
+
+	if not script[Context.Module] then
+		return Result.Err("Feature dont exist")
+	end
+
+	return Result.Ok(Context)
+end
+
+function ServerActionService.Invoke(Context: ContextType)
+	if TryContext(Context):IsErr() then
 		return
 	end
 
-	local ModuleName = Context.Module
-	local FuncName = Context.Func
-	if typeof(ModuleName) ~= "string" or typeof(FuncName) ~= "string" then
-		return
+	if Context.Module == "MechanicManager" then
+		require(script[Context.Module])[Context.Func](Context)
 	end
-
-	local AllowedFuncs = AllowedModules[ModuleName]
-	if not AllowedFuncs or not AllowedFuncs[FuncName] then
-		return
-	end
-
-	if not Context.EntityMachine or typeof(Context.EntityMachine) ~= "table" then
-		return
-	end
-
-	if not Context.EntityMachine.Player or typeof(Context.EntityMachine.Player) ~= "Instance" then
-		return
-	end
-
-	local Module = Internal[ModuleName]
-	if not Module then
-		return
-	end
-
-	local Handler = require(Module)[FuncName]
-	if typeof(Handler) ~= "function" then
-		return
-	end
-
-	if ModuleName == "MechanicManager" then
-		Handler(Context)
-		return
-	end
-
-	Handler(Context.EntityMachine)
 end
 
 return ServerActionService
