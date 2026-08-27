@@ -16,7 +16,9 @@ const Attributes = table.freeze({
 	LightAttack = false,
 })
 
-const Entities = {}
+const Entities = setmetatable({}, {
+	__weak = "kv",
+})
 
 local PlayerBehavior
 
@@ -107,7 +109,7 @@ function EntityService.PlayerAdded(Player: Player, Components)
 	local EntityProfile = EntityProfileStruct.new(Player, Character, Janitor.new(), Humanoid, RootPart, nil)
 	EntityProfile.StateMachine = CreateStateMachineClass.new(EntityProfile)
 
-	Entities[Player.Name] = EntityProfile
+	Entities[Player.UserId] = EntityProfile
 end
 
 function EntityService.CharacterAdded(_, Player: Player, Character: CharacterType_d.Character)
@@ -116,8 +118,18 @@ function EntityService.CharacterAdded(_, Player: Player, Character: CharacterTyp
 	end
 end
 
-function EntityService.getEntity(PlayerName)
-	return Entities[PlayerName]
+function EntityService.PlayerRemoving(Player)
+	local EntityProfile = Entities[Player.UserId]
+	if EntityProfile then
+		EntityProfile.Janitor:Cleanup()
+		table.clear(EntityProfile)
+	end
+
+	Entities[Player.UserId] = nil
+end
+
+function EntityService.getEntity(PlayerId)
+	return Entities[PlayerId]
 end
 
 return EntityService

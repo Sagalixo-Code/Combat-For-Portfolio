@@ -38,11 +38,11 @@ function StateService.Start()
 	SharedByteNetPackets.StatePacket.StateManager.listen(function(
 		Context: {
 			Action: string,
-			Params: { [any]: any },
+			Params: { [any]: any }?,
 		},
 		Player: Player
 	)
-		local EntityMachine = EntityService.getEntity(Player.Name)
+		local EntityMachine = EntityService.getEntity(Player.UserId)
 
 		if not EntityMachine or not StateMachineInterface:check(EntityMachine.StateMachine) then
 			return
@@ -56,9 +56,9 @@ function StateService.Start()
 					return
 				end
 
-				EntityMachine.StateMachine:PushState(State:Unwrap())
+				EntityMachine.StateMachine:PushState(State:Unwrap(), Context.Params)
 			elseif Context.Action == "PopState" then
-				EntityMachine.StateMachine:PopState()
+				EntityMachine.StateMachine:PopState(Context.Params)
 			else
 				local State = TryGetState(Context)
 
@@ -66,7 +66,7 @@ function StateService.Start()
 					return
 				end
 
-				EntityMachine.StateMachine:Trigger(State:Unwrap())
+				EntityMachine.StateMachine:Trigger(State:Unwrap(), Context.Params)
 			end
 		end
 	end)

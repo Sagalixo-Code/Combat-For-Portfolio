@@ -1751,6 +1751,14 @@
                   "filePaths": [
                     "sync/ReplicatedStorage/Shared/Definitions/CharacterType.d.luau"
                   ]
+                },
+                {
+                  "name": "EntityMachine.d",
+                  "className": "ModuleScript",
+                  "guid": "6517417",
+                  "filePaths": [
+                    "sync/ReplicatedStorage/Shared/Definitions/EntityMachine.d.luau"
+                  ]
                 }
               ]
             },
@@ -1998,6 +2006,14 @@
                     "sync/ReplicatedStorage/Shared/Utils/TweenManager.luau"
                   ]
                 }
+              ]
+            },
+            {
+              "name": "Common",
+              "className": "ModuleScript",
+              "guid": "6517411",
+              "filePaths": [
+                "sync/ReplicatedStorage/Shared/Common.luau"
               ]
             }
           ]
@@ -2357,12 +2373,32 @@
                             {
                               "name": "LightAttacks",
                               "className": "Folder",
-                              "guid": "6517144"
+                              "guid": "6517144",
+                              "children": [
+                                {
+                                  "name": "Fists",
+                                  "className": "ModuleScript",
+                                  "guid": "6517413",
+                                  "filePaths": [
+                                    "sync/ServerScriptService/Server/Services/ServerActionService/ServerActionService/MechanicManager/LightAttacks/Fists.luau"
+                                  ]
+                                }
+                              ]
                             },
                             {
                               "name": "Criticals",
                               "className": "Folder",
-                              "guid": "6517148"
+                              "guid": "6517148",
+                              "children": [
+                                {
+                                  "name": "Fists",
+                                  "className": "ModuleScript",
+                                  "guid": "6517415",
+                                  "filePaths": [
+                                    "sync/ServerScriptService/Server/Services/ServerActionService/ServerActionService/MechanicManager/Criticals/Fists.luau"
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }
@@ -2490,6 +2526,21 @@
                           "guid": "11851",
                           "filePaths": [
                             "sync/StarterPlayer/StarterPlayerScripts/Client/Controllers/UIController/UIController.luau"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "name": "StateController",
+                      "className": "Folder",
+                      "guid": "6517419",
+                      "children": [
+                        {
+                          "name": "StateController",
+                          "className": "ModuleScript",
+                          "guid": "6517420",
+                          "filePaths": [
+                            "sync/StarterPlayer/StarterPlayerScripts/Client/Controllers/StateController/StateController.luau"
                           ]
                         }
                       ]
