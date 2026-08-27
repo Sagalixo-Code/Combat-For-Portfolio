@@ -4,11 +4,14 @@ export type ContextType = {
 	EntityMachine: { [string]: any }?,
 }
 
-local Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
 
-local Result = Syntax.Result
+const Result = Syntax.Result
 
-local ServerActionService = {}
+const ServerActionService = {}
+
+const ServerActionLogger = Logger.new("ServerActionService")
 
 local function TryContext(Context: ContextType?)
 	if not Context then
@@ -44,6 +47,7 @@ function ServerActionService.Invoke(Context: ContextType)
 	local ResultModule = TryContext(Context)
 
 	if ResultModule:IsErr() then
+		ServerActionLogger:Error(`Error to get module, error is: {ResultModule:UnwrapErr()}`)
 		return ResultModule
 	end
 

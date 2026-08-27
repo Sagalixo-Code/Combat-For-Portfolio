@@ -48,26 +48,18 @@ function StateService.Start()
 			return
 		end
 
-		if EntityMachine.StateMachine[Context.Action] then
-			if Context.Action == "PushState" then
-				local State = TryGetState(Context)
+		if Context.Action == "PushState" then
+			local State = TryGetState(Context)
 
-				if State:IsErr() then
-					return
-				end
-
-				EntityMachine.StateMachine:PushState(State:Unwrap(), Context.Params)
-			elseif Context.Action == "PopState" then
-				EntityMachine.StateMachine:PopState(Context.Params)
-			else
-				local State = TryGetState(Context)
-
-				if State:IsErr() then
-					return
-				end
-
-				EntityMachine.StateMachine:Trigger(State:Unwrap(), Context.Params)
+			if State:IsErr() then
+				return
 			end
+
+			EntityMachine.StateMachine:PushState(State:Unwrap(), Context.Params)
+		elseif Context.Action == "PopState" then
+			EntityMachine.StateMachine:PopState(Context.Params)
+		else
+			EntityMachine.StateMachine:Trigger(Context.Action)
 		end
 	end)
 end

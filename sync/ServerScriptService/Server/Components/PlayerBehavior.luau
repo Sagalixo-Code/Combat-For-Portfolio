@@ -1,11 +1,28 @@
-local PlayerBehavior = {}
+const Registry = require("@game/ReplicatedStorage/Shared/Libs/Forge/Registry")
+const PlayerBehavior = {}
+
+local ServerActionService
+
+local function GetServerActionService(): {
+	["Invoke"]: (Context: { Module: string?, Func: string?, EntityMachine: { [string]: any }? }) -> (),
+}
+	if not ServerActionService then
+		ServerActionService = Registry:getService("ServerActionService")
+	end
+
+	return ServerActionService
+end
 
 PlayerBehavior.Idle = {
 	["Enter"] = function(EntityProfile) end,
 	["Exit"] = function(EntityProfile) end,
 
 	EquipWeapon = function(EntityProfile)
-		print("Equip")
+		GetServerActionService().Invoke({
+			Module = "EquipWeapon",
+			Func = "Trigger",
+			EntityMachine = EntityProfile,
+		})
 	end,
 
 	EquipWeaponNextState = "HasWeapon",
@@ -16,7 +33,11 @@ PlayerBehavior.HasWeapon = {
 	["Exit"] = function(EntityProfile) end,
 
 	LightAttack = function(EntityProfile)
-		print("M1")
+		GetServerActionService().Invoke({
+			Module = "MechanicManager",
+			Func = "LightAttack",
+			EntityMachine = EntityProfile,
+		})
 	end,
 
 	UnequipWeapon = function(EntityProfile) end,
