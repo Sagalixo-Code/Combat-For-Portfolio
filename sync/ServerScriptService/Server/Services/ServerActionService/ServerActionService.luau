@@ -33,20 +33,21 @@ local function TryContext(Context: ContextType?)
 
 	local Module = require(script[Context.Module])
 
-	if not Module[Context.Func] then
-		return
+	if not Module[Context.Func] or typeof(Module[Context.Func]) ~= "function" then
+		return Result.Err("Function does not exist")
 	end
 
 	return Result.Ok(Module)
 end
 
 function ServerActionService.Invoke(Context: ContextType)
-	local Module = TryContext(Context)
-	if Module:IsErr() then
-		return
+	local ResultModule = TryContext(Context)
+
+	if ResultModule:IsErr() then
+		return ResultModule
 	end
 
-	Module:Unwrap()[Context.Func](Context)
+	return ResultModule:Unwrap()[Context.Func](Context)
 end
 
 return ServerActionService
