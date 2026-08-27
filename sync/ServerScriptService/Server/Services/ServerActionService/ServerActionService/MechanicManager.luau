@@ -1,6 +1,7 @@
-local Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
 
-local Result = Syntax.Result
+const Result = Syntax.Result
 
 const MechanicManager = {
 	Actions = {
@@ -9,14 +10,47 @@ const MechanicManager = {
 	},
 }
 
-local function ResolveAction(Context, ActionType)
-	local ActionConteiner = MechanicManager.Actions[ActionType]
+const MechanicManagerLogger = Logger.new("MechanicManager")
 
-	if not ActionConteiner then
+type DebugContext = {
+	Entity: string?,
+	State: string?,
+	Style: string?,
+	Action: string?,
+	Error: string?,
+}
+
+local function MakeDebugMessage(Level: string, Context: DebugContext)
+	local Message = {
+		["COMBAT DEBUG"] = {
+			Entity = Context.Entity or "unknown",
+			State = Context.State or "unknown",
+			Style = Context.Style or "unknown",
+			Action = Context.Action or "unknown",
+
+			Pipeline = {
+				Error = Context.Error or "unknown",
+			},
+
+			Time = time(),
+		},
+	}
+
+	local LogFunction = MechanicManagerLogger[Level]
+
+	if LogFunction then
+		LogFunction(MechanicManagerLogger, Message)
+	end
+end
+
+local function ResolveAction(Context, ActionType)
+	local ActionContainer = MechanicManager.Actions[ActionType]
+
+	if not ActionContainer then
 		return Result.Err(`Action type "{ActionType}" not found`)
 	end
 
-	local FeatureModule = ActionConteiner[Context.Style]
+	local FeatureModule = ActionContainer[Context.Style]
 
 	if not FeatureModule then
 		return Result.Err(`No action found for style "{Context.Style}"`)
@@ -28,27 +62,47 @@ local function ResolveAction(Context, ActionType)
 		return Result.Err(Action)
 	end
 
-	return Action
+	return Result.Ok(Action)
 end
 
 function MechanicManager.LightAttack(Context)
 	local LightAttack = ResolveAction(Context, "LightAttacks")
 
-	if not LightAttack:IsOk() then
-		return
+	if LightAttack:IsErr() then
+		MakeDebugMessage("Error", {
+			Entity = Context.EntityMachine.Name,
+			State = Context.State,
+			Style = Context.Style,
+			Action = "LightAttack",
+			Error = LightAttack:UnwrapErr(),
+		})
+
+		return LightAttack
 	end
 
 	LightAttack:Unwrap().Init(Context.EntityMachine)
+
+	return LightAttack
 end
 
 function MechanicManager.Critical(Context)
 	local Critical = ResolveAction(Context, "Criticals")
 
-	if not Critical:IsOk() then
-		return
+	if Critical:IsErr() then
+		MakeDebugMessage("Error", {
+			Entity = Context.EntityMachine.Name,
+			State = Context.State,
+			Style = Context.Style,
+			Action = "Critical",
+			Error = Critical:UnwrapErr(),
+		})
+
+		return Critical
 	end
 
 	Critical:Unwrap().Init(Context.EntityMachine)
+
+	return Critical
 end
 
 return MechanicManager
