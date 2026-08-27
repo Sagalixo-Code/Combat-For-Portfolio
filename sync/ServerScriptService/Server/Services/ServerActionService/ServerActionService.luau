@@ -31,17 +31,22 @@ local function TryContext(Context: ContextType?)
 		return Result.Err("Feature dont exist")
 	end
 
-	return Result.Ok(Context)
-end
+	local Module = require(script[Context.Module])
 
-function ServerActionService.Invoke(Context: ContextType)
-	if TryContext(Context):IsErr() then
+	if not Module[Context.Func] then
 		return
 	end
 
-	if Context.Module == "MechanicManager" then
-		require(script[Context.Module])[Context.Func](Context)
+	return Result.Ok(Module)
+end
+
+function ServerActionService.Invoke(Context: ContextType)
+	local Module = TryContext(Context)
+	if Module:IsErr() then
+		return
 	end
+
+	Module:Unwrap()[Context.Func](Context)
 end
 
 return ServerActionService

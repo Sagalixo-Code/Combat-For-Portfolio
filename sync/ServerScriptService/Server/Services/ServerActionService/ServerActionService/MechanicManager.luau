@@ -41,4 +41,14 @@ function MechanicManager.LightAttack(Context)
 	LightAttack:Unwrap().Init(Context.EntityMachine)
 end
 
+function MechanicManager.Critical(Context)
+	local Critical = ResolveAction(Context, "Criticals")
+
+	if not Critical:IsOk() then
+		return
+	end
+
+	Critical:Unwrap().Init(Context.EntityMachine)
+end
+
 return MechanicManager
