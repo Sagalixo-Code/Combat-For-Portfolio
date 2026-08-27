@@ -1,6 +1,6 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
-local CharacterType_d = require(ReplicatedStorage.Shared.Definitions["CharacterType.d"])
+const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
+const CharacterType_d = require("@game/ReplicatedStorage/Shared/Definitions/CharacterType.d")
 const Janitor = require("@game/ReplicatedStorage/Packages/Janitor")
 
 const Class = Syntax.Class
@@ -20,6 +20,7 @@ const Entities = setmetatable({}, {
 	__weak = "kv",
 })
 
+const EntityServiceLogger = Logger.new("EntityService")
 local PlayerBehavior
 
 const CreateStateMachineClass = Class({
@@ -32,7 +33,7 @@ const CreateStateMachineClass = Class({
 		const State = this.Struct.StateEnums[NewState]
 
 		if not State then
-			warn(`{NewState} is not a valid state!`)
+			EntityServiceLogger:Debug(`{NewState} is not a valid state!`)
 			return
 		end
 
@@ -60,6 +61,7 @@ const CreateStateMachineClass = Class({
 		const Handler = State[Action]
 
 		if not Handler then
+			EntityServiceLogger:Debug(`State Handler is nil. Current State: {this.Struct.State}, Action: Action`)
 			return
 		end
 
@@ -82,6 +84,8 @@ const CreateStateMachineClass = Class({
 
 		if PreviousState then
 			this:SetState(PreviousState)
+		else
+			EntityServiceLogger:Debug(`PreviousState is nil.`)
 		end
 	end,
 })
@@ -125,7 +129,9 @@ function EntityService.PlayerRemoving(Player)
 		table.clear(EntityProfile)
 	end
 
-	Entities[Player.UserId] = nil
+	if Entities[Player.UserId] then
+		Entities[Player.UserId] = nil
+	end
 end
 
 function EntityService.getEntity(PlayerId)

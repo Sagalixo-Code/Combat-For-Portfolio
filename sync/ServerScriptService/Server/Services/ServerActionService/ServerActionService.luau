@@ -9,38 +9,41 @@ const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
 
 const Result = Syntax.Result
 
+const Ok = Result.Ok
+const Err = Result.Err
+
 const ServerActionService = {}
 
 const ServerActionLogger = Logger.new("ServerActionService")
 
 local function TryContext(Context: ContextType?)
 	if not Context then
-		return Result.Err("Context dont exist")
+		return Err("Context dont exist")
 	end
 
 	if not Context.Module then
-		return Result.Err("Module dont exist")
+		return Err("Module dont exist")
 	end
 
 	if not Context.Func then
-		return Result.Err("Func dont exist")
+		return Err("Func dont exist")
 	end
 
 	if not Context.EntityMachine then
-		return Result.Err("Entity Machine dont exist")
+		return Err("Entity Machine dont exist")
 	end
 
 	if not script[Context.Module] then
-		return Result.Err("Feature dont exist")
+		return Err("Feature dont exist")
 	end
 
 	local Module = require(script[Context.Module])
 
 	if not Module[Context.Func] or typeof(Module[Context.Func]) ~= "function" then
-		return Result.Err("Function does not exist")
+		return Err("Function does not exist")
 	end
 
-	return Result.Ok(Module)
+	return Ok(Module)
 end
 
 function ServerActionService.Invoke(Context: ContextType)

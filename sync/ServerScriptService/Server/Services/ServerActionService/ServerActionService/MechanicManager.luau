@@ -3,6 +3,9 @@ const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
 
 const Result = Syntax.Result
 
+const Ok = Result.Ok
+const Err = Result.Err
+
 const MechanicManager = {
 	Actions = {
 		LightAttacks = script:WaitForChild("LightAttacks"),
@@ -47,22 +50,22 @@ local function ResolveAction(Context, ActionType)
 	local ActionContainer = MechanicManager.Actions[ActionType]
 
 	if not ActionContainer then
-		return Result.Err(`Action type "{ActionType}" not found`)
+		return Err(`Action type "{ActionType}" not found`)
 	end
 
 	local FeatureModule = ActionContainer[Context.Style]
 
 	if not FeatureModule then
-		return Result.Err(`No action found for style "{Context.Style}"`)
+		return Err(`No action found for style "{Context.Style}"`)
 	end
 
 	local Success, Action = pcall(require, FeatureModule)
 
 	if not Success then
-		return Result.Err(Action)
+		return Err(Action)
 	end
 
-	return Result.Ok(Action)
+	return Ok(Action)
 end
 
 function MechanicManager.LightAttack(Context)

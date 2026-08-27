@@ -1,7 +1,7 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 const SharedByteNetPackets = require("@game/ReplicatedStorage/Networking/SharedByteNetPackets")
 const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
-local Registry = require(ReplicatedStorage.Shared.Libs.Forge.Registry)
+const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
+const Registry = require("@game/ReplicatedStorage/Shared/Libs/Forge/Registry")
 
 const Interface = Syntax.Interface
 const Result = Syntax.Result
@@ -10,6 +10,8 @@ const Ok = Result.Ok
 const Err = Result.Err
 
 const StateService = {}
+
+const StateServiceLogger = Logger.new("StateService")
 
 const function TryGetState(Context)
 	if not Context.Params then
@@ -45,6 +47,7 @@ function StateService.Start()
 		local EntityMachine = EntityService.getEntity(Player.UserId)
 
 		if not EntityMachine or not StateMachineInterface:check(EntityMachine.StateMachine) then
+			StateServiceLogger:Error(`EntityMachine not is valid.`)
 			return
 		end
 
@@ -52,6 +55,7 @@ function StateService.Start()
 			local State = TryGetState(Context)
 
 			if State:IsErr() then
+				StateServiceLogger:Error(`Error to PushState: {State:UnwrapErr()}`)
 				return
 			end
 
