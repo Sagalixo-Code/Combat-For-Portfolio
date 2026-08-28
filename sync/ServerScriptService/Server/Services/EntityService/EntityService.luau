@@ -1,5 +1,4 @@
 const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
-const Common = require("@game/ReplicatedStorage/Shared/Common")
 const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
 const Janitor = require("@game/ReplicatedStorage/Packages/Janitor")
 
@@ -119,6 +118,7 @@ function EntityService.PlayerAdded(Player: Player, Components)
 		Struct.field("RootPart", RootPart),
 		Struct.field("StateMachine", {}),
 		Struct.field("CooldownManager", {}),
+		Struct.field("HitManager", {}),
 		Struct.field("Style", ""),
 	})
 
@@ -130,6 +130,7 @@ function EntityService.PlayerAdded(Player: Player, Components)
 		RootPart,
 		nil,
 		Components.CooldownManager.new(),
+		Components.HitManager,
 		"Dagger"
 	)
 

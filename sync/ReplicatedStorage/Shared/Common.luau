@@ -19,7 +19,7 @@ end
 
 function Common.RenderWalkSpeed(Vars)
 	local Holders = {
-		Walkspeed = 16,
+		Walkspeed = 11,
 		JumpPower = 50,
 		HighestPriority = 0,
 	}
