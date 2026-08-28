@@ -6,6 +6,8 @@ const CharacterType_d = require("@game/ReplicatedStorage/Shared/Definitions/Char
 const StunAttributes = table.freeze({
 	LightAttack = true,
 	HasWeapon = true,
+	SoftStun = true,
+	HighStun = true,
 })
 const StunService = {}
 const EntityJanitors = {}

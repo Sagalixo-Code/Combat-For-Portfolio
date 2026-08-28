@@ -1,3 +1,9 @@
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Resources = ReplicatedStorage:WaitForChild("Resources")
+local Assets = Resources:WaitForChild("Assets")
+
 local Common = {}
 
 local StunInfo = require(script.StunInfo)
@@ -15,6 +21,31 @@ function Common.StopIdle(Vars)
 	for _, Anims in pairs(Vars.Character.Humanoid:GetPlayingAnimationTracks()) do
 		Anims:Stop(0.045)
 	end
+end
+
+function Common.Sound(SoundName, Character)
+	local SoundInst = Assets.Sounds:FindFirstChild(tostring(SoundName))
+
+	if not SoundInst then
+		warn("Sound dont found.")
+		return
+	end
+
+	local Clone: Sound = SoundInst:Clone()
+	Clone.Parent = Character:WaitForChild("HumanoidRootPart")
+
+	if Clone.IsLoaded then
+		Clone:Play()
+	else
+		local conn
+
+		conn = Clone.Loaded:Connect(function()
+			Clone:Play()
+			conn:Disconnect()
+		end)
+	end
+
+	Debris:AddItem(Clone, Clone.TimeLength)
 end
 
 function Common.RenderWalkSpeed(Vars)

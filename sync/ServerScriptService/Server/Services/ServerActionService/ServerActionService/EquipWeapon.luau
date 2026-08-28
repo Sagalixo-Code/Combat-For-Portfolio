@@ -100,6 +100,12 @@ local function EquipWeapon(EntityMachine, WeaponList, WeaponName)
 	Idle.Stopped:Once(function()
 		Connection:Disconnect()
 	end)
+
+	task.delay(0.05, function()
+		if Handle:FindFirstChild("OnEquipSound") then
+			Handle:FindFirstChild("OnEquipSound"):Play()
+		end
+	end)
 end
 
 Action.Trigger = function(Context)

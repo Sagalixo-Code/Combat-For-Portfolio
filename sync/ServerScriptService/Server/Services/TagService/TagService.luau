@@ -6,8 +6,8 @@ const Outcomes = script:WaitForChild("Outcomes")
 local TagService = {}
 TagService.Tagged = Signal.new()
 
-function TagService.Tag(Data)
-	if Common:ActionCheck(Data.Machine, "Stun") and not Data.Bypass then
+function TagService.Tag(Data, ...)
+	if not Common:ActionCheck(Data.Machine, "Stun") and not Data.Bypass then
 		return
 	end
 
@@ -20,7 +20,7 @@ function TagService.Tag(Data)
 	end
 
 	local outcomeFunc = require(Outcomes[Data.Outcome])
-	outcomeFunc.Init(Data)
+	outcomeFunc.Init(Data, ...)
 end
 
 return TagService

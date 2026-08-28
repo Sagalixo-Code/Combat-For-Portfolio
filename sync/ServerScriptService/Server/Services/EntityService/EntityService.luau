@@ -24,6 +24,7 @@ const Attributes = table.freeze({
 	DeflectFrames = false,
 	Critical = false,
 	Uppercut = false,
+	SoftStun = false,
 })
 const Entities = setmetatable({}, {
 	__weak = "kv",

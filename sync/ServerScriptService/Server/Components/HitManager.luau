@@ -109,6 +109,7 @@ local evaluations = {
 
 local HitManager = Class({
 	constructor = function(this, args)
+		print("new")
 		this.Shape = args.Shape or "Sphere"
 		this.Size = args.Size or Vector3.new(5, 5, 5)
 		this.CFrame = args.CFrame
@@ -303,7 +304,7 @@ local HitManager = Class({
 		debugIndicator.Massless = true
 		debugIndicator.CanCollide = false
 		debugIndicator.CanQuery = false
-		debugIndicator.Transparency = 0.8
+		debugIndicator.Transparency = 0.5
 		debugIndicator.Material = Enum.Material.ForceField
 		debugIndicator.BrickColor = BrickColor.new("Bright red")
 		debugIndicator.Parent = workspace

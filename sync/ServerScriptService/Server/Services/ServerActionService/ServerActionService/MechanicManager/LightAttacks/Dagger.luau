@@ -35,9 +35,20 @@ function Action.Init(EntityMachine: EntityMachine)
 
 	StringData.LoadLists(AttackInfo, "WeaponList", script.Name)
 
+	local HitManager = EntityMachine.HitManager.new({
+		Shape = "Box",
+		Size = Vector3.new(AttackInfo.Width, AttackInfo.Height, AttackInfo.Reach),
+		CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -AttackInfo.Reach / 2),
+		StartTime = time(),
+		EndTime = time() + 1,
+		Character = Character,
+		Sweep = true,
+	})
+
 	Combo += 1
 
-	if Combo >= 4 then
+	if Combo >= 5 then
+		AttackInfo.Type = "Kick"
 		AttackInfo.KB = true
 		EntityMachine.CooldownManager:Set("LightAttack", AttackInfo.HitSpeed * 4)
 	else
@@ -55,6 +66,9 @@ function Action.Init(EntityMachine: EntityMachine)
 	Animation:AdjustSpeed(AttackInfo.AdjustSpeed or 1)
 
 	EntityMachine.Janitor:Add(Animation, "Stop")
+	EntityMachine.Janitor:Add(HitManager, "Destroy")
+
+	Common.Sound("SpinSwing" .. math.random(1, 2), EntityMachine.Character)
 
 	EntityMachine.Janitor:Add(EntityMachine.Character.AttributeChanged:Connect(function(Attribute)
 		if Attribute == "Feinted" then
@@ -67,8 +81,18 @@ function Action.Init(EntityMachine: EntityMachine)
 		end
 	end))
 
-	EntityMachine.Janitor:Add(Animation:GetMarkerReachedSignal("Hit"):Connect(function()
+	EntityMachine.Janitor:Add(Animation:GetMarkerReachedSignal("AttackFrame"):Connect(function()
 		Character:SetAttribute("CanFeint", false)
+
+		HitManager.Hit:Connect(function(HitResult: EntityMachine_d.HitResult<typeof(EntityMachine)>)
+			HitResult.TagInfo.EMachine.Character:SetAttribute("SoftStun", true)
+			task.delay(1, function()
+				HitResult.TagInfo.EMachine.Character:SetAttribute("SoftStun", false)
+			end)
+			HitResult.TagService.Tag(HitResult.TagInfo, AttackInfo)
+		end)
+
+		HitManager:Start()
 	end))
 
 	EntityMachine.Janitor:Add(Animation.Stopped:Connect(function()

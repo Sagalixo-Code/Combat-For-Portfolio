@@ -32,13 +32,79 @@ export type CooldownManager = {
 	Destroy: (self: CooldownManager) -> (),
 }
 
+export type HitResult<T> = {
+	TagInfo: {
+		EMachine: T,
+		Machine: T,
+		Outcome: string,
+	},
+	TagService: any,
+}
+
+export type HitManager = {
+	new: (
+		{
+			Shape: "Sphere" | "Box",
+			Size: Vector3?,
+			CFrame: CFrame | (() -> CFrame)?,
+
+			StartTime: number?,
+			EndTime: number?,
+
+			Character: CharacterType_d.Character,
+
+			Filter: { Instance }?,
+			Sweep: boolean?,
+		}
+	) -> HitManager,
+	Shape: "Sphere" | "Box",
+	Size: Vector3,
+	CFrame: CFrame | (() -> CFrame)?,
+
+	StartTime: number,
+	EndTime: number,
+
+	Character: CharacterType_d.Character,
+	AttackerPlayer: Player?,
+
+	Connection: RBXScriptConnection?,
+	Sweep: boolean,
+	PreviousCFrame: CFrame?,
+
+	Started: boolean,
+	Destroyed: boolean,
+
+	OverlapParams: OverlapParams,
+	AlreadyHit: { [Model]: boolean },
+
+	Hit: any,
+
+	EntityService: any,
+	TagService: any,
+
+	Start: (self: HitManager) -> RBXScriptConnection?,
+	Stop: (self: HitManager) -> (),
+	Destroy: (self: HitManager) -> (),
+
+	GenerateHitboxDebugOverlay: (
+		self: HitManager,
+		hitboxCFrame: CFrame,
+		hitboxSize: Vector3,
+		Length: number
+	) -> (),
+
+	EvaluateImpact: (self: HitManager, targetEntity: Model, attackerPosition: Vector3) -> string,
+}
+
 export type EntityMachine = {
 	Player: Player,
 	Character: CharacterType_d.Character,
 	Janitor: typeof(Janitor.new()),
+
 	Humanoid: Humanoid & {
 		AnimationController: AnimationController,
 	},
+
 	RootPart: BasePart,
 
 	StateMachine: {
@@ -49,7 +115,10 @@ export type EntityMachine = {
 	},
 
 	Style: string,
+
 	CooldownManager: CooldownManager,
+
+	HitManager: HitManager,
 }
 
 return EntityMachineType

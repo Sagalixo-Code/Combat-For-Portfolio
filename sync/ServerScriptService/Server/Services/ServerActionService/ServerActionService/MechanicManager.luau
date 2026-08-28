@@ -96,6 +96,15 @@ function MechanicManager.LightAttack(Context)
 
 	if LightAttack:Unwrap().Init(Context.EntityMachine) then
 		task.delay(0.115, function()
+			ClientReplicator:FireClient(Context.EntityMachine.Player, {
+				Owner = Context.EntityMachine.Character,
+				Func = "AfterImages",
+				Data = {
+					Duration = 0.15,
+					Interaval = 0.035,
+					Character = Context.EntityMachine.Character,
+				},
+			})
 			ClientReplicator:FireAllClients({
 				Owner = Context.EntityMachine.Character,
 				Func = Context.EntityMachine.Style .. "SwingEffect",
