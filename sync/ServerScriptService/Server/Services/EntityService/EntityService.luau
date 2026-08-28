@@ -1,7 +1,9 @@
 const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
+const Common = require("@game/ReplicatedStorage/Shared/Common")
 const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
-const CharacterType_d = require("@game/ReplicatedStorage/Shared/Definitions/CharacterType.d")
 const Janitor = require("@game/ReplicatedStorage/Packages/Janitor")
+
+const CharacterType_d = require("@game/ReplicatedStorage/Shared/Definitions/CharacterType.d")
 
 const Class = Syntax.Class
 const Struct = Syntax.Struct
@@ -14,8 +16,16 @@ const EntityStruct = Struct({
 
 const Attributes = table.freeze({
 	LightAttack = false,
+	CanFeint = false,
+	HasWeapon = false,
+	Combo = 1,
+	CombatTimer = 0,
+	Sprinting = false,
+	Blocking = false,
+	DeflectFrames = false,
+	Critical = false,
+	Uppercut = false,
 })
-
 const Entities = setmetatable({}, {
 	__weak = "kv",
 })
@@ -97,9 +107,9 @@ function EntityService.PlayerAdded(Player: Player, Components)
 		PlayerBehavior = Components.PlayerBehavior
 	end
 
-	local Character = Player.Character or Player.CharacterAdded:Wait()
-	local Humanoid = Character:WaitForChild("Humanoid")
-	local RootPart = Character:WaitForChild("HumanoidRootPart")
+	const Character = Player.Character or Player.CharacterAdded:Wait()
+	const Humanoid = Character:WaitForChild("Humanoid")
+	const RootPart = Character:WaitForChild("HumanoidRootPart")
 
 	const EntityProfileStruct = Struct({
 		Struct.field("Player", Player),
@@ -108,9 +118,22 @@ function EntityService.PlayerAdded(Player: Player, Components)
 		Struct.field("Humanoid", Humanoid),
 		Struct.field("RootPart", RootPart),
 		Struct.field("StateMachine", {}),
+		Struct.field("CooldownManager", {}),
+		Struct.field("Style", ""),
 	})
 
-	local EntityProfile = EntityProfileStruct.new(Player, Character, Janitor.new(), Humanoid, RootPart, nil)
+	local EntityProfile = EntityProfileStruct.new(
+		Player,
+		Character,
+		Janitor.new(),
+		Humanoid,
+		RootPart,
+		nil,
+		Components.CooldownManager.new(),
+		"Dagger"
+	)
+
+	Character:SetAttribute("Weapon", "Dagger")
 	EntityProfile.StateMachine = CreateStateMachineClass.new(EntityProfile)
 
 	Entities[Player.UserId] = EntityProfile

@@ -1,5 +1,8 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 const Syntax = require("@game/ReplicatedStorage/Shared/Libs/Syntax")
 const Logger = require("@game/ReplicatedStorage/Shared/Libs/Logger")
+
+const ClientReplicator = ReplicatedStorage:WaitForChild("ClientReplicator")
 
 const Result = Syntax.Result
 
@@ -50,13 +53,21 @@ local function ResolveAction(Context, ActionType)
 	local ActionContainer = MechanicManager.Actions[ActionType]
 
 	if not ActionContainer then
-		return Err(`Action type "{ActionType}" not found`)
+		return Err(`Action type "{ActionType}" not found.`)
 	end
 
-	local FeatureModule = ActionContainer[Context.Style]
+	if not Context.EntityMachine then
+		return Err(`Context.EntityMachine dont exist.`)
+	end
+
+	if not Context.EntityMachine.Style then
+		return Err(`Context.EntityMachine.Style dont exist.`)
+	end
+
+	local FeatureModule = ActionContainer[Context.EntityMachine.Style]
 
 	if not FeatureModule then
-		return Err(`No action found for style "{Context.Style}"`)
+		return Err(`No action found for style "{Context.EntityMachine.Style}".`)
 	end
 
 	local Success, Action = pcall(require, FeatureModule)
@@ -83,7 +94,14 @@ function MechanicManager.LightAttack(Context)
 		return LightAttack
 	end
 
-	LightAttack:Unwrap().Init(Context.EntityMachine)
+	if LightAttack:Unwrap().Init(Context.EntityMachine) then
+		task.delay(0.115, function()
+			ClientReplicator:FireAllClients({
+				Owner = Context.EntityMachine.Character,
+				Func = Context.EntityMachine.Style .. "SwingEffect",
+			})
+		end)
+	end
 
 	return LightAttack
 end
