@@ -12,10 +12,11 @@ local function applyDamageHighlight(character)
 
 	-- Fade out over time
 	task.spawn(function()
-		for i = 0.3, 1, 0.1 do
+		task.wait(0.05)
+		for i = 0.3, 1, 0.025 do
 			if highlight then
 				highlight.FillTransparency = i
-				task.wait(0.05)
+				task.wait(0.000035)
 			end
 		end
 		if highlight then

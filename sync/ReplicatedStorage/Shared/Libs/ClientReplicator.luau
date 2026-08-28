@@ -244,4 +244,27 @@ function ClientReplicator.KickHitEffect(Args)
 	end)
 end
 
+function ClientReplicator.WallImpactEffect(Args)
+	local Owner = Args.Owner
+
+	local WallImpactSmoke = Assets.VFX:FindFirstChild("WallImpactSmoke")
+
+	if not WallImpactSmoke then
+		print("dont have vfx")
+		return
+	end
+
+	WallImpactSmoke = WallImpactSmoke:Clone()
+
+	Debris:AddItem(WallImpactSmoke, 5)
+
+	WallImpactSmoke.Parent = workspace
+	WallImpactSmoke.Orientation = Args.HitNormal
+	WallImpactSmoke.Position = Args.HitPosition + (Args.HitPart.CFrame.LookVector * 5)
+
+	task.delay(0.01, function()
+		EmitModule.emit(WallImpactSmoke)
+	end)
+end
+
 return ClientReplicator

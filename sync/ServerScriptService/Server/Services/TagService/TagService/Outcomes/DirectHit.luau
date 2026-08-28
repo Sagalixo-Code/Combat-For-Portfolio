@@ -1,125 +1,334 @@
+--!strict
+
 const ReplicatedStorage = game:GetService("ReplicatedStorage")
+const RunService = game:GetService("RunService")
+
 const ClientReplicator = ReplicatedStorage:WaitForChild("ClientReplicator")
+
 const Common = require("@game/ReplicatedStorage/Shared/Common")
 const JanitorClass = require(ReplicatedStorage.Packages.Janitor)
-local RockModule = require(ReplicatedStorage.Shared.Libs.RockModule)
+const RockModule = require(ReplicatedStorage.Shared.Libs.RockModule)
 
 const Animations = ReplicatedStorage:WaitForChild("Resources"):WaitForChild("Assets"):WaitForChild("Animations")
 
 const DirectHit = {}
 
+type EntityArray = {
+	Machine: {
+		Character: Model,
+		Player: Player,
+	},
+	EMachine: {
+		Character: Model,
+		Humanoid: Humanoid,
+	},
+}
+
+type AttackInfo = {
+	Type: string,
+	Damage: number,
+	KB: boolean?,
+	HitReaction: boolean?,
+	HitEffect: boolean?,
+}
+
+local function GetRootPart(Character: Model): BasePart?
+	local RootPart = Character:FindFirstChild("HumanoidRootPart")
+
+	if RootPart and RootPart:IsA("BasePart") then
+		return RootPart
+	end
+
+	return nil
+end
+
 local function ApplyKnockback(Attacker: Model, Target: Model, Force: number, UpwardForce: number)
-	local AttackerRoot = Attacker:FindFirstChild("HumanoidRootPart")
-	local TargetRoot = Target:FindFirstChild("HumanoidRootPart")
+	local AttackerRoot = GetRootPart(Attacker)
+	local TargetRoot = GetRootPart(Target)
 
 	if not AttackerRoot or not TargetRoot then
 		return
 	end
 
-	if not AttackerRoot:IsA("BasePart") or not TargetRoot:IsA("BasePart") then
+	local Offset = TargetRoot.Position - AttackerRoot.Position
+	local Direction = Vector3.new(Offset.X, 0, Offset.Z)
+
+	if Direction.Magnitude <= 0.001 then
+		local LookVector = AttackerRoot.CFrame.LookVector
+		Direction = Vector3.new(LookVector.X, 0, LookVector.Z)
+	end
+
+	if Direction.Magnitude <= 0.001 then
 		return
 	end
 
-	local Direction = TargetRoot.Position - AttackerRoot.Position
-
-	if Direction.Magnitude <= 0.001 then
-		Direction = AttackerRoot.CFrame.LookVector
-	else
-		Direction = Direction.Unit
-	end
-
-	Direction = Vector3.new(Direction.X, 0, Direction.Z)
-
-	if Direction.Magnitude <= 0.001 then
-		Direction = AttackerRoot.CFrame.LookVector
-		Direction = Vector3.new(Direction.X, 0, Direction.Z).Unit
-	end
+	Direction = Direction.Unit
 
 	TargetRoot.AssemblyLinearVelocity = Vector3.new(Direction.X * Force, UpwardForce, Direction.Z * Force)
 end
 
-DirectHit.Init = function(Array, AttackInfo)
-	Common.StopAnims({
-		Character = Array.EMachine.Character,
-		Humanoid = Array.EMachine.Humanoid,
-	})
+local function CheckWallCollision(Character: Model): (RaycastResult?, Vector3?)
+	local RootPart = GetRootPart(Character)
 
-	if AttackInfo.HitReaction then
-		const AnimationInst = Animations.Stun:FindFirstChild("H" .. Array.Machine.Character:GetAttribute("Combo"))
-
-		if AnimationInst then
-			const Swing: AnimationTrack = Array.EMachine.Humanoid:LoadAnimation(AnimationInst)
-			Swing.Priority = Enum.AnimationPriority.Action2
-			Swing:Play()
-		end
+	if not RootPart then
+		return nil
 	end
 
-	local Type = AttackInfo.Type
-	Array.EMachine.Character.Humanoid:TakeDamage(AttackInfo.Damage)
+	local Velocity = RootPart.AssemblyLinearVelocity
 
-	if AttackInfo.KB then
-		local Janitor = JanitorClass.new()
+	local HorizontalVelocity = Vector3.new(Velocity.X, 0, Velocity.Z)
 
-		Common.StopAnims({
-			Character = Array.EMachine.Character,
-			Humanoid = Array.EMachine.Humanoid,
-		})
+	if HorizontalVelocity.Magnitude <= 0.1 then
+		return nil
+	end
 
-		ClientReplicator:FireClient(
-			Array.Machine.Player,
-			{ Owner = Array.Machine.Character, Func = "CamShake", Type = "CurveStart" }
-		)
+	local Direction = HorizontalVelocity.Unit
 
-		Array.EMachine.Humanoid.AutoRotate = false
-		local Velocity = true
-		local Swing: AnimationTrack = Array.EMachine.Humanoid:LoadAnimation(Animations.Knockback)
-		Swing:Play()
+	local FrameDistance = HorizontalVelocity.Magnitude / 60
 
-		task.spawn(function()
-			for i = 1, 3 do
-				ApplyKnockback(Array.Machine.Character, Array.EMachine.Character, 100, 5)
-				task.wait(0.01)
+	local DetectionDistance = math.max(FrameDistance + 1.5, 2.5)
+
+	local RaycastParams = RaycastParams.new()
+	RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	RaycastParams.FilterDescendantsInstances = {
+		Character,
+	}
+	RaycastParams.IgnoreWater = true
+
+	return workspace:Raycast(RootPart.Position, Direction * DetectionDistance, RaycastParams), Direction
+end
+
+local function HandleWallImpact(Character: Model, HitResult: RaycastResult, Direction: Vector3)
+	local RootPart = GetRootPart(Character)
+
+	if not RootPart then
+		return
+	end
+
+	Common.Sound("WallImpact", Character)
+
+	local BounceDirection = -Direction
+
+	BounceDirection = Vector3.new(BounceDirection.X, 0, BounceDirection.Z)
+
+	if BounceDirection.Magnitude <= 0.001 then
+		return
+	end
+
+	BounceDirection = BounceDirection.Unit
+
+	local BounceForce = 100
+	local BounceUpwardForce = 8
+
+	RootPart.AssemblyLinearVelocity =
+		Vector3.new(BounceDirection.X * BounceForce, BounceUpwardForce, BounceDirection.Z * BounceForce)
+
+	ClientReplicator:FireAllClients({
+		Func = "WallImpactEffect",
+		Owner = Character,
+		HitPart = HitResult.Instance,
+		HitPosition = HitResult.Position,
+		HitNormal = HitResult.Normal,
+		HitMaterial = HitResult.Material,
+	})
+end
+
+local function PlayAnimation(
+	Humanoid: Humanoid,
+	Animation: Animation,
+	Priority: Enum.AnimationPriority?
+): AnimationTrack
+	local Track = Humanoid:LoadAnimation(Animation)
+
+	if Priority then
+		Track.Priority = Priority
+	end
+
+	Track:Play()
+
+	return Track
+end
+
+local function PlayHitReaction(Array: EntityArray)
+	local Combo = Array.Machine.Character:GetAttribute("Combo")
+
+	if typeof(Combo) ~= "string" and typeof(Combo) ~= "number" then
+		return
+	end
+
+	local Animation = Animations.Stun:FindFirstChild(`H{Combo}`)
+
+	if not Animation or not Animation:IsA("Animation") then
+		return
+	end
+
+	PlayAnimation(Array.EMachine.Humanoid, Animation, Enum.AnimationPriority.Action2)
+end
+
+local function HandleKnockback(Array: EntityArray)
+	local Character = Array.EMachine.Character
+	local Humanoid = Array.EMachine.Humanoid
+
+	local Janitor = JanitorClass.new()
+
+	Common.StopAnims({
+		Character = Character,
+		Humanoid = Humanoid,
+	})
+
+	ClientReplicator:FireClient(Array.Machine.Player, {
+		Owner = Array.Machine.Character,
+		Func = "CamShake",
+		Type = "CurveStart",
+	})
+
+	Humanoid.AutoRotate = false
+	Character:SetAttribute("HighStun", true)
+
+	local KnockbackActive = true
+	local WallHit = false
+
+	local Track = PlayAnimation(Humanoid, Animations.Knockback)
+	Janitor:Add(Track, "Stop")
+
+	local RootPart = GetRootPart(Character)
+
+	if not RootPart then
+		Janitor:Cleanup()
+
+		Humanoid.AutoRotate = true
+		Character:SetAttribute("HighStun", false)
+
+		return
+	end
+
+	Janitor:Add(RunService.Heartbeat:Connect(function()
+		if not KnockbackActive or WallHit then
+			return
+		end
+
+		local CurrentRoot = GetRootPart(Character)
+
+		if not CurrentRoot then
+			return
+		end
+
+		local HitResult, Direction = CheckWallCollision(Character)
+
+		if not HitResult or not Direction then
+			return
+		end
+
+		WallHit = true
+
+		Janitor:Cleanup()
+		HandleWallImpact(Character, HitResult, Direction)
+	end))
+
+	task.spawn(function()
+		for _ = 1, 3 do
+			if not KnockbackActive then
+				break
 			end
-			while Velocity do
-				ApplyKnockback(Array.Machine.Character, Array.EMachine.Character, 32, 0)
-				task.wait()
+
+			if WallHit then
+				break
+			end
+
+			ApplyKnockback(Array.Machine.Character, Character, 100, 5)
+
+			task.wait(0.01)
+		end
+
+		while KnockbackActive do
+			if not WallHit then
+				ApplyKnockback(Array.Machine.Character, Character, 32, 0)
+			end
+
+			task.wait()
+		end
+	end)
+
+	Janitor:Add(Track:GetMarkerReachedSignal("freeze"):Connect(function()
+		Track:AdjustSpeed(0.1)
+
+		task.delay(0.3, function()
+			if Track.IsPlaying then
+				Track:AdjustSpeed(2)
+			end
+		end)
+	end))
+
+	Janitor:Add(Track:GetMarkerReachedSignal("impact"):Connect(function()
+		if WallHit then
+			return
+		end
+		Track:AdjustSpeed(0.1)
+
+		task.delay(0.5, function()
+			if Track.IsPlaying then
+				Track:AdjustSpeed(1.85)
 			end
 		end)
 
-		Array.EMachine.Character:SetAttribute("HighStun", true)
+		Common.Sound("Ground Slam", Character)
 
-		Janitor:Add(Swing:GetMarkerReachedSignal("freeze"):Connect(function()
-			Swing:AdjustSpeed(0.1)
-			task.delay(0.3, function()
-				Swing:AdjustSpeed(2)
-			end)
-		end))
+		local CurrentRoot = GetRootPart(Character)
 
-		Janitor:Add(Swing:GetMarkerReachedSignal("impact"):Connect(function()
-			Swing:AdjustSpeed(0.1)
-			task.delay(0.5, function()
-				Swing:AdjustSpeed(1.85)
-			end)
+		if not CurrentRoot then
+			return
+		end
 
-			RockModule.Slam(Array.EMachine.Character.HumanoidRootPart.CFrame, 8, 9, 6, false)
-		end))
+		RockModule.Slam(CurrentRoot.CFrame, 7, 8, 5, false)
 
-		Janitor:Add(Swing:GetMarkerReachedSignal("landed"):Connect(function()
-			Velocity = false
-			Array.EMachine.Humanoid.AutoRotate = true
-			Array.EMachine.Character:SetAttribute("HighStun", false)
-		end))
+		RockModule.Explosion(CurrentRoot.CFrame, math.random(3, 4), 0.5, 1.5, false)
+	end))
 
-		Janitor:Add(Swing.Stopped:Connect(function()
-			Janitor:Cleanup()
-		end))
+	Janitor:Add(Track:GetMarkerReachedSignal("landed"):Connect(function()
+		KnockbackActive = false
+
+		Humanoid.AutoRotate = true
+		Character:SetAttribute("HighStun", false)
+	end))
+
+	Janitor:Add(Track.Stopped:Connect(function()
+		KnockbackActive = false
+
+		Humanoid.AutoRotate = true
+		Character:SetAttribute("HighStun", false)
+
+		Janitor:Cleanup()
+	end))
+end
+
+function DirectHit.Init(Array: EntityArray, AttackInfo: AttackInfo)
+	local Character = Array.EMachine.Character
+	local Humanoid = Array.EMachine.Humanoid
+
+	Common.StopAnims({
+		Character = Character,
+		Humanoid = Humanoid,
+	})
+
+	if AttackInfo.HitReaction then
+		PlayHitReaction(Array)
 	end
 
-	ClientReplicator:FireAllClients({ Owner = Array.EMachine.Character, Func = Type .. "HitEffect" })
+	Humanoid:TakeDamage(AttackInfo.Damage)
 
-	if Type and AttackInfo.HitEffect then
-		Common.Sound(Type .. math.random(1, 5), Array.EMachine.Character)
-		ClientReplicator:FireAllClients({ Owner = Array.EMachine.Character, Func = Type .. "HitEffect" })
+	if AttackInfo.KB then
+		HandleKnockback(Array)
+	end
+
+	local HitType = AttackInfo.Type
+
+	if AttackInfo.HitEffect then
+		ClientReplicator:FireAllClients({
+			Owner = Character,
+			Func = `{HitType}HitEffect`,
+		})
+
+		Common.Sound(`{HitType}{math.random(1, 5)}`, Character)
 	end
 end
 
