@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local Character = script.Parent
 local Player = Players:GetPlayerFromCharacter(Character)
 
-
 local Combo = Character:GetAttribute("Combo")
 
 Character:GetAttributeChangedSignal("Combo"):Connect(function()
@@ -17,7 +16,7 @@ Character:GetAttributeChangedSignal("Combo"):Connect(function()
 		function reset()
 			check = true
 		end
-	task.delay(1.6, function()
+		task.delay(1.6, function()
 			if check == false then
 				Character:SetAttribute("Combo", 0)
 			end
@@ -31,3 +30,4 @@ Character:GetAttributeChangedSignal("Combo"):Connect(function()
 	end]]
 end)
 
+Character.Parent = workspace.World.Living

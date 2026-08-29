@@ -10,7 +10,7 @@ local Assets = Resources:WaitForChild("Assets")
 
 local CameraShaker = require(script.CameraShaker)
 
-local rig = workspace:WaitForChild(Players.LocalPlayer.Name)
+local rig = workspace.World.Living:WaitForChild(Players.LocalPlayer.Name)
 rig.Archivable = true
 
 local DEFAULTS = {
@@ -173,11 +173,10 @@ end
 function ClientReplicator.DaggerSwingEffect(Args)
 	local Owner = Args.Owner
 
-	local Combo = Args.Owner:GetAttribute("Combo") and tostring(Args.Owner:GetAttribute("Combo"))
+	local Combo = Args.Combo
 
 	if not Combo then
-		print("dont have Combo")
-		return
+		Combo = Args.Owner:GetAttribute("Combo") and tostring(Args.Owner:GetAttribute("Combo"))
 	end
 
 	local M1SwingDagger = Assets.VFX.Swing.M1SwingDagger:FindFirstChild(Combo)
@@ -214,7 +213,7 @@ function ClientReplicator.SharpHitEffect(Args)
 
 	Debris:AddItem(SharpHitEffect, 5)
 
-	SharpHitEffect.Parent = workspace
+	SharpHitEffect.Parent = workspace.World.Debris
 	SharpHitEffect.CFrame = Owner.HumanoidRootPart.CFrame
 
 	task.delay(0.01, function()
@@ -225,28 +224,26 @@ end
 function ClientReplicator.KickHitEffect(Args)
 	local Owner = Args.Owner
 
-	local SharpHitEffect = Assets.VFX:FindFirstChild("KickHit")
+	local KickHit = Assets.VFX:FindFirstChild("KickHit")
 
-	if not SharpHitEffect then
+	if not KickHit then
 		print("dont have vfx")
 		return
 	end
 
-	SharpHitEffect = SharpHitEffect:Clone()
+	KickHit = KickHit:Clone()
 
-	Debris:AddItem(SharpHitEffect, 5)
+	Debris:AddItem(KickHit, 5)
 
-	SharpHitEffect.Parent = workspace
-	SharpHitEffect.CFrame = Owner.HumanoidRootPart.CFrame
+	KickHit.Parent = workspace.World.Debris
+	KickHit.CFrame = Owner.HumanoidRootPart.CFrame
 
 	task.delay(0.01, function()
-		EmitModule.emit(SharpHitEffect)
+		EmitModule.emit(KickHit)
 	end)
 end
 
 function ClientReplicator.WallImpactEffect(Args)
-	local Owner = Args.Owner
-
 	local WallImpactSmoke = Assets.VFX:FindFirstChild("WallImpactSmoke")
 
 	if not WallImpactSmoke then
@@ -258,12 +255,55 @@ function ClientReplicator.WallImpactEffect(Args)
 
 	Debris:AddItem(WallImpactSmoke, 5)
 
-	WallImpactSmoke.Parent = workspace
+	WallImpactSmoke.Parent = workspace.World.Debris
 	WallImpactSmoke.Orientation = Args.HitNormal
-	WallImpactSmoke.Position = Args.HitPosition + (Args.HitPart.CFrame.LookVector * 5)
+	WallImpactSmoke.Position = Args.HitPosition + (Args.HitPart.CFrame.LookVector * 0.25)
 
 	task.delay(0.01, function()
 		EmitModule.emit(WallImpactSmoke)
+	end)
+end
+
+function ClientReplicator.Critical(Args)
+	local Owner = Args.Owner
+
+	local CRIT = Assets.VFX:FindFirstChild("CRIT")
+
+	if not CRIT then
+		print("dont have vfx")
+		return
+	end
+
+	CRIT = CRIT:Clone()
+
+	Debris:AddItem(CRIT, 5)
+
+	CRIT.Parent = workspace.World.Debris
+	CRIT.CFrame = Owner.HumanoidRootPart.CFrame
+
+	task.delay(0.01, function()
+		local highlight = Instance.new("Highlight")
+		highlight.FillColor = Color3.fromRGB(255, 255, 255)
+		highlight.FillTransparency = 0.3
+		highlight.OutlineTransparency = 1
+		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+		highlight.Adornee = Owner
+		highlight.Parent = Owner
+
+		task.spawn(function()
+			task.wait(0.05)
+			for i = 0.3, 1, 0.025 do
+				if highlight then
+					highlight.FillTransparency = i
+					task.wait(0.0001)
+				end
+			end
+			if highlight then
+				highlight:Destroy()
+			end
+		end)
+
+		EmitModule.emit(CRIT)
 	end)
 end
 

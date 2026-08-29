@@ -9,8 +9,13 @@ local Common = {}
 local StunInfo = require(script.StunInfo)
 
 function Common:ActionCheck(Character: Model, ActionName: string): boolean
-	if ActionName == "LightAttack" then
-		if Character:GetAttribute("LightAttack") then
+	if ActionName == "LightAttack" or ActionName == "Critical" then
+		if
+			Character:GetAttribute("LightAttack")
+			or Character:GetAttribute("Critical")
+			or Character:GetAttribute("SoftStun")
+			or Character:GetAttribute("HighStun")
+		then
 			return false
 		end
 	end

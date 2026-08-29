@@ -42,6 +42,22 @@ local function GetRootPart(Character: Model): BasePart?
 	return nil
 end
 
+local function PlayAnimation(
+	Humanoid: Humanoid,
+	Animation: Animation,
+	Priority: Enum.AnimationPriority?
+): AnimationTrack
+	local Track = Humanoid:LoadAnimation(Animation)
+
+	if Priority then
+		Track.Priority = Priority
+	end
+
+	Track:Play()
+
+	return Track
+end
+
 local function ApplyKnockback(Attacker: Model, Target: Model, Force: number, UpwardForce: number)
 	local AttackerRoot = GetRootPart(Attacker)
 	local TargetRoot = GetRootPart(Target)
@@ -92,13 +108,15 @@ local function CheckWallCollision(Character: Model): (RaycastResult?, Vector3?)
 	RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	RaycastParams.FilterDescendantsInstances = {
 		Character,
+		workspace.World.Living,
+		workspace.World.Debris,
 	}
 	RaycastParams.IgnoreWater = true
 
 	return workspace:Raycast(RootPart.Position, Direction * DetectionDistance, RaycastParams), Direction
 end
 
-local function HandleWallImpact(Character: Model, HitResult: RaycastResult, Direction: Vector3)
+local function HandleWallImpact(Character: Model & { Humanoid: any }, HitResult: RaycastResult, Direction: Vector3)
 	local RootPart = GetRootPart(Character)
 
 	if not RootPart then
@@ -106,6 +124,12 @@ local function HandleWallImpact(Character: Model, HitResult: RaycastResult, Dire
 	end
 
 	Common.Sound("WallImpact", Character)
+
+	local Animation = Animations.Stun:FindFirstChild(`H{5}`)
+
+	if not Animation or not Animation:IsA("Animation") then
+		return
+	end
 
 	local BounceDirection = -Direction
 
@@ -123,6 +147,8 @@ local function HandleWallImpact(Character: Model, HitResult: RaycastResult, Dire
 	RootPart.AssemblyLinearVelocity =
 		Vector3.new(BounceDirection.X * BounceForce, BounceUpwardForce, BounceDirection.Z * BounceForce)
 
+	PlayAnimation(Character.Humanoid, Animation, Enum.AnimationPriority.Action2)
+
 	ClientReplicator:FireAllClients({
 		Func = "WallImpactEffect",
 		Owner = Character,
@@ -131,22 +157,6 @@ local function HandleWallImpact(Character: Model, HitResult: RaycastResult, Dire
 		HitNormal = HitResult.Normal,
 		HitMaterial = HitResult.Material,
 	})
-end
-
-local function PlayAnimation(
-	Humanoid: Humanoid,
-	Animation: Animation,
-	Priority: Enum.AnimationPriority?
-): AnimationTrack
-	local Track = Humanoid:LoadAnimation(Animation)
-
-	if Priority then
-		Track.Priority = Priority
-	end
-
-	Track:Play()
-
-	return Track
 end
 
 local function PlayHitReaction(Array: EntityArray)

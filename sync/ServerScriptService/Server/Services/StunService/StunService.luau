@@ -8,6 +8,7 @@ const StunAttributes = table.freeze({
 	HasWeapon = true,
 	SoftStun = true,
 	HighStun = true,
+	Critical = true,
 })
 const StunService = {}
 const EntityJanitors = {}

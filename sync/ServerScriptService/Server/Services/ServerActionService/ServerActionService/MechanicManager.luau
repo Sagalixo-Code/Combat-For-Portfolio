@@ -95,7 +95,9 @@ function MechanicManager.LightAttack(Context)
 	end
 
 	if LightAttack:Unwrap().Init(Context.EntityMachine) then
+		Context.EntityMachine.Character:SetAttribute("LightAttack", true)
 		task.delay(0.115, function()
+			Context.EntityMachine.Character:SetAttribute("LightAttack", false)
 			ClientReplicator:FireClient(Context.EntityMachine.Player, {
 				Owner = Context.EntityMachine.Character,
 				Func = "AfterImages",
@@ -130,7 +132,16 @@ function MechanicManager.Critical(Context)
 		return Critical
 	end
 
-	Critical:Unwrap().Init(Context.EntityMachine)
+	if Critical:Unwrap().Init(Context.EntityMachine) then
+		Context.EntityMachine.Character:SetAttribute("Critical", true)
+		task.delay(1.35, function()
+			Context.EntityMachine.Character:SetAttribute("Critical", false)
+		end)
+		ClientReplicator:FireAllClients({
+			Owner = Context.EntityMachine.Character,
+			Func = "Critical",
+		})
+	end
 
 	return Critical
 end

@@ -1,4 +1,5 @@
 --!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 const Common = require("@game/ReplicatedStorage/Shared/Common")
 const StringData = require("@game/ReplicatedStorage/Shared/Data/StringData")
@@ -17,15 +18,8 @@ const DaggerLightAttackLogger = Logger.new("Daggger Light Attack")
 function Action.Init(EntityMachine: EntityMachine)
 	local Character = EntityMachine.Character
 
-	if not Common:ActionCheck(Character, "LightAttack") or not EntityMachine.CooldownManager:IsReady("LightAttack") then
-		DaggerLightAttackLogger:Debug(`LightAttack is in cooldown or no is possible to user.`)
-		return
-	end
-
-	local Combo = tonumber(Character:GetAttribute("Combo"))
-
-	if not Combo then
-		DaggerLightAttackLogger:Debug(`LightAttack is in cooldown or no is possible to user.`)
+	if not Common:ActionCheck(Character, "Critical") or not EntityMachine.CooldownManager:IsReady("Critical") then
+		DaggerLightAttackLogger:Debug(`Critical is in cooldown or no is possible to user.`)
 		return
 	end
 
@@ -34,6 +28,11 @@ function Action.Init(EntityMachine: EntityMachine)
 	}
 
 	StringData.LoadLists(AttackInfo, "WeaponList", script.Name)
+
+	AttackInfo.KB = true
+	AttackInfo.Damage = AttackInfo.Damage * 1.3
+
+	EntityMachine.CooldownManager:Set("Critical", 5)
 
 	local HitManager = EntityMachine.HitManager.new({
 		Shape = "Box",
@@ -45,20 +44,7 @@ function Action.Init(EntityMachine: EntityMachine)
 		Sweep = true,
 	})
 
-	Combo += 1
-
-	if Combo >= 5 then
-		AttackInfo.Type = "Kick"
-		AttackInfo.KB = true
-		EntityMachine.CooldownManager:Set("LightAttack", AttackInfo.HitSpeed * 4)
-	else
-		EntityMachine.CooldownManager:Set("LightAttack", AttackInfo.HitSpeed * 1.25)
-	end
-
-	Character:SetAttribute("Combo", Combo)
-	Character:SetAttribute("CanFeint", true)
-
-	local Animation = EntityMachine.Humanoid:LoadAnimation(AttackInfo.Animations["Swing" .. Combo])
+	local Animation = EntityMachine.Humanoid:LoadAnimation(AttackInfo.Animations["Critical"])
 
 	Animation.Priority = Enum.AnimationPriority.Action3
 	Animation:Play()
@@ -67,22 +53,18 @@ function Action.Init(EntityMachine: EntityMachine)
 	EntityMachine.Janitor:Add(Animation, "Stop")
 	EntityMachine.Janitor:Add(HitManager, "Destroy")
 
-	Common.Sound("SpinSwing" .. math.random(1, 2), EntityMachine.Character)
+	Common.Sound("SekiroCrit", Character)
 
-	EntityMachine.Janitor:Add(EntityMachine.Character.AttributeChanged:Connect(function(Attribute)
-		if Attribute == "Feinted" then
-			EntityMachine.Character:SetAttribute("Combo", 0)
-			Animation:Stop()
-			Character:SetAttribute("Combo", 0)
-			Character:SetAttribute("LightAttack", false)
-			EntityMachine.Janitor:Cleanup()
-			return
-		end
-	end))
+	task.delay(0.415, function()
+		ReplicatedStorage.ClientReplicator:FireAllClients({
+			Owner = EntityMachine.Character,
+			Func = "DaggerSwingEffect",
+			Combo = 5,
+		})
+	end)
 
 	EntityMachine.Janitor:Add(Animation:GetMarkerReachedSignal("AttackFrame"):Connect(function()
-		Character:SetAttribute("CanFeint", false)
-
+		Common.Sound("Stabbing", Character)
 		HitManager.Hit:Connect(function(HitResult: EntityMachine_d.HitResult<typeof(EntityMachine)>)
 			HitResult.TagInfo.EMachine.Character:SetAttribute("SoftStun", true)
 			task.delay(1, function()
@@ -95,7 +77,6 @@ function Action.Init(EntityMachine: EntityMachine)
 	end))
 
 	EntityMachine.Janitor:Add(Animation.Stopped:Connect(function()
-		Character:SetAttribute("LightAttack", false)
 		Character:SetAttribute("CanFeint", false)
 		EntityMachine.Janitor:Cleanup()
 	end))

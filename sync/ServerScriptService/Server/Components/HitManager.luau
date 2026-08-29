@@ -131,7 +131,7 @@ local HitManager = Class({
 		this.OverlapParams = OverlapParams.new()
 		this.OverlapParams.FilterType = Enum.RaycastFilterType.Exclude
 
-		local filterList = { this.Character }
+		local filterList = { this.Character, workspace.World.Map }
 
 		if args.Filter then
 			for _, instance in ipairs(args.Filter) do

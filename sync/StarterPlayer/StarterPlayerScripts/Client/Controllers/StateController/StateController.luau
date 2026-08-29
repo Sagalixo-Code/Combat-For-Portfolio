@@ -19,6 +19,11 @@ function StateController.Start()
 				Action = "EquipWeapon",
 				Params = {},
 			})
+		elseif Input.KeyCode == Enum.KeyCode.R then
+			SharedByteNetPackets.StatePacket.StateManager.send({
+				Action = "Critical",
+				Params = {},
+			})
 		end
 	end)
 end

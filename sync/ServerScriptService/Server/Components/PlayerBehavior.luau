@@ -40,6 +40,14 @@ PlayerBehavior.HasWeapon = {
 		})
 	end,
 
+	Critical = function(EntityProfile)
+		GetServerActionService().Invoke({
+			Module = "MechanicManager",
+			Func = "Critical",
+			EntityMachine = EntityProfile,
+		})
+	end,
+
 	UnequipWeapon = function(EntityProfile) end,
 
 	UnequipWeaponNextState = "Idle",
